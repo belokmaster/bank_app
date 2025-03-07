@@ -2,82 +2,104 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	_ "modernc.org/sqlite"
 )
 
-func main() {
-	fileName := "money.xlsx"
-
-	f, sheetName, err := openExcelFile(fileName)
+// Функция для получения текущего баланса из базы данных
+func GetCurrentBalance(db *sql.DB) (float64, error) {
+	var balance float64
+	query := "SELECT after_operation FROM transactions ORDER BY id DESC LIMIT 1"
+	err := db.QueryRow(query).Scan(&balance)
 	if err != nil {
-		fmt.Println(err)
-		return
+		// Если ошибка, то возвращаем 0 как начальный баланс
+		if err.Error() == "no rows in result set" {
+			return 0, nil // Таблица пуста, начинаем с 0
+		}
+		return 0, err
 	}
-	defer closeExcelFile(f)
+	return balance, nil
+}
 
+func main() {
+	// Открытие базы данных
+	db, err := OpenDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// Создание таблицы
+	err = CreateTable(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Чтение пользовательского ввода
 	reader := bufio.NewReader(os.Stdin)
-
 	for {
-		fmt.Println("1 - добавить запись, 2 - снять деньги со счета, q - выход")
+		fmt.Println("1 - внести средства на счет, 2 - выйти")
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 
+		var operation string
 		switch input {
 		case "1":
-			fmt.Println("Введите сумму для зачисления средств.")
-			sumInput, _ := reader.ReadString('\n')
-			sumInput = strings.TrimSpace(sumInput)
+			operation = "+"
 
-			if _, err := strconv.ParseFloat(sumInput, 64); err != nil {
-				fmt.Println("Ошибка: введите только число (например, 1 или 1.05)")
+			fmt.Println("Введите сумму:")
+			amountInput, _ := reader.ReadString('\n')
+			amountInput = strings.TrimSpace(amountInput)
+
+			amount, err := strconv.ParseFloat(amountInput, 64)
+			if err != nil {
+				fmt.Println("Ошибка: введите число для суммы")
+				continue
 			}
 
-			fmt.Println("Введите тип операции.")
-			operationInput, _ := reader.ReadString('\n')
+			fmt.Println("Введите тип операции:")
+			operationType, _ := reader.ReadString('\n')
+			operationType = strings.TrimSpace(operationType)
 
-			err := updateExcelCell(f, sheetName, sumInput, "+", operationInput)
+			fmt.Println("Введите счет (например, 'Наличные' или 'Банковский перевод'):")
+			countType, _ := reader.ReadString('\n')
+			countType = strings.TrimSpace(countType)
+
+			// Получаем текущее значение баланса
+			beforeOperation, err := GetCurrentBalance(db)
+			if err != nil {
+				fmt.Println("Ошибка при получении текущего баланса:", err)
+				continue
+			}
+
+			// Если таблица пуста, то начнем с нуля
+			if beforeOperation == 0 {
+				beforeOperation = 0.0
+			}
+
+			// Вычисляем новый баланс после операции
+			afterOperation := beforeOperation + amount
+
+			// Обновление базы данных
+			err = UpdateDatabase(db, operation, operationType, countType, amount, beforeOperation, afterOperation)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
-			err = saveExcelFile(f, fileName)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println("Данные успешно обновлены!")
-			}
+			fmt.Println("Запись успешно добавлена!")
+
 		case "2":
-			fmt.Println("Введите сумму для снятия средств.")
-			sumInput, _ := reader.ReadString('\n')
-			sumInput = strings.TrimSpace(sumInput)
-
-			if _, err := strconv.ParseFloat(sumInput, 64); err != nil {
-				fmt.Println("Ошибка: введите только число (например, 1 или 1.05)")
-			}
-
-			fmt.Println("Введите тип операции.")
-			operationInput, _ := reader.ReadString('\n')
-
-			err := updateExcelCell(f, sheetName, sumInput, "-", operationInput)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-
-			err = saveExcelFile(f, fileName)
-			if err != nil {
-				fmt.Println(err)
-			} else {
-				fmt.Println("Данные успешно обновлены!")
-			}
-
-		case "q":
-			fmt.Println("Работа программы завершена.")
+			// Выход из программы
+			fmt.Println("Выход из программы.")
 			return
+
 		default:
 			fmt.Println("Неизвестная команда, попробуйте снова.")
 		}
