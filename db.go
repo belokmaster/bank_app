@@ -7,7 +7,7 @@ import (
 
 // Открывает соединение с базой данных
 func OpenDB() (*sql.DB, error) {
-	database, err := sql.Open("sqlite", "./base.db")
+	database, err := sql.Open("sqlite", "./balance.db")
 	if err != nil {
 		return nil, fmt.Errorf("ошибка открытия базы данных: %w", err)
 	}
@@ -20,14 +20,14 @@ func OpenDB() (*sql.DB, error) {
 // Создаёт таблицу в базе данных
 func CreateTable(db *sql.DB) error {
 	query := `CREATE TABLE IF NOT EXISTS transactions (
-		id INTEGER PRIMARY KEY,
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		operation TEXT,
-		amount FLOAT64,
-		operation_type TEXT,
-		count_type TEXT,
-		before_operation FLOAT64,
-		after_operation FLOAT64
-	);`
+		type TEXT,
+		account TEXT,
+		amount REAL,
+		before_operation REAL,
+		after_operation REAL
+	)`
 
 	_, err := db.Exec(query)
 	if err != nil {
@@ -37,14 +37,7 @@ func CreateTable(db *sql.DB) error {
 }
 
 // Обновляет данные в базе данных
-func UpdateDatabase(db *sql.DB, operation, operationType, countType string, amount float64, beforeOperation, afterOperation float64) error {
-	// Вставка новой записи
-	query := `INSERT INTO transactions (operation, amount, operation_type, count_type, before_operation, after_operation) 
-	          VALUES (?, ?, ?, ?, ?, ?)`
-
-	_, err := db.Exec(query, operation, amount, operationType, countType, beforeOperation, afterOperation)
-	if err != nil {
-		return fmt.Errorf("ошибка выполнения запроса для обновления базы данных: %w", err)
-	}
-	return nil
+func UpdateDatabase(db *sql.DB, operation, typeOp, account string, amount, before, after float64) error {
+	_, err := db.Exec(`INSERT INTO transactions (operation, type, account, amount, before_operation, after_operation) VALUES (?, ?, ?, ?, ?, ?)`, operation, typeOp, account, amount, before, after)
+	return err
 }
