@@ -59,7 +59,17 @@ func main() {
 			http.Error(w, "Ошибка получения баланса", http.StatusInternalServerError)
 			return
 		}
-		after := before + amount
+
+		var after float64
+		if typeOp == "income" {
+			after = before + amount
+		} else if typeOp == "expense" {
+			after = before - amount
+		} else {
+			http.Error(w, "Некорректный тип операции", http.StatusBadRequest)
+			return
+		}
+
 		UpdateDatabase(db, "+", typeOp, countType, amount, before, after)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})

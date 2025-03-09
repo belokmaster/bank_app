@@ -18,12 +18,16 @@
         .circle-button {
             width: 50px;
             height: 50px;
-            background-color: #007bff;
+            background-color: #a19f9f; /* Начальный цвет кружка (серый) */
             color: white;
             border: none;
             border-radius: 50%;
             font-size: 24px;
             cursor: pointer;
+            margin-bottom: 10px; /* Отступ между кружками */
+            display: block; /* Чтобы кружки были друг под другом */
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .panel {
@@ -37,22 +41,68 @@
             background-color: #f9f9f9;
         }
 
-        .panel input {
+        .panel input[type="number"] {
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             padding: 8px;
-            border: 1px solid #ccc;
+            border: none;
+            background: transparent;
             border-radius: 5px;
+            text-align: right;
+            font-size: 40px;
+            outline: none;
+        }
+
+        .panel input::placeholder {
+            text-align: right;
+            color: #999;
+            font-size: 32px;
+            letter-spacing: 2px;
         }
 
         .panel button {
-            background-color: #28a745;
             color: white;
-            border: none;
+            border: 2px solid transparent;
             padding: 10px;
             width: 100%;
             cursor: pointer;
             border-radius: 5px;
+            transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+
+        .panel button:active {
+            transform: translateY(2px);
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .operation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .operation-buttons button {
+            color: white;
+            border: 2px solid transparent;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 48%;
+            transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+
+        .operation-buttons button:active {
+            filter: brightness(90%);
+            color: white;
+        }
+
+        .operation-buttons button.selected {
+            filter: brightness(90%);
+            color: white;
         }
     </style>
 </head>
@@ -60,27 +110,114 @@
 
     <h1 class="balance">Ваш баланс: {{.}} ₽</h1>
 
-    <!-- Кнопка-кружок -->
-    <button class="circle-button" onclick="togglePanel()">+</button>
+    <!-- Кружки с разными функциями -->
+    <button class="circle-button" onclick="togglePanel('depositPanel')">+</button>
+    <button class="circle-button" onclick="togglePanel('transferPanel')">⇄</button>
+    <button class="circle-button" onclick="togglePanel('historyPanel')">📜</button>
+    <button class="circle-button" onclick="togglePanel('settingsPanel')">⚙️</button>
 
-    <!-- Панель ввода -->
+    <!-- Панель для внесения средств -->
     <div class="panel" id="depositPanel">
         <form action="/deposit" method="post">
-            <label>Сумма:</label>
-            <input type="number" name="amount" step="0.01" required>
-            <label>Тип операции:</label>
-            <input type="text" name="type" required>
+            <div class="operation-buttons">
+                <button type="button" id="incomeBtn" onclick="setOperationType('income')">ДОХОД</button>
+                <button type="button" id="expenseBtn" onclick="setOperationType('expense')">РАСХОД</button>
+            </div>
+            <input type="number" name="amount" step="0.01" required id="amountInput" placeholder="0">
+            <input type="hidden" name="type" id="operationType">
             <label>Счет:</label>
             <input type="text" name="account" required>
-            <button type="submit">Внести</button>
+            <button type="submit" id="submitBtn">ВНЕСТИ</button>
         </form>
     </div>
 
+    <!-- Панель для перевода средств -->
+    <div class="panel" id="transferPanel">
+        <form action="/transfer" method="post">
+            <label>Сумма перевода:</label>
+            <input type="number" name="amount" step="0.01" required placeholder="0">
+            <label>Откуда:</label>
+            <input type="text" name="fromAccount" required>
+            <label>Куда:</label>
+            <input type="text" name="toAccount" required>
+            <button type="submit">ПЕРЕВЕСТИ</button>
+        </form>
+    </div>
+
+    <!-- Панель истории операций -->
+    <div class="panel" id="historyPanel">
+        <h2>История операций</h2>
+        <p>Здесь будет отображаться история ваших операций.</p>
+    </div>
+
+    <!-- Панель настроек -->
+    <div class="panel" id="settingsPanel">
+        <h2>Настройки</h2>
+        <p>Здесь можно настроить ваш профиль.</p>
+    </div>
+
     <script>
-        function togglePanel() {
-            var panel = document.getElementById("depositPanel");
-            panel.style.display = (panel.style.display === "block") ? "none" : "block";
+        // Функция для переключения видимости панели
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+
+            // Если панель уже открыта, закрываем её
+            if (panel.style.display === "block") {
+                panel.style.display = "none";
+            } else {
+                // Скрываем все панели
+                document.querySelectorAll('.panel').forEach(p => {
+                    p.style.display = 'none';
+                });
+
+                // Показываем выбранную панель
+                panel.style.display = "block";
+            }
         }
+
+        // Функция для установки типа операции
+        function setOperationType(type) {
+            document.getElementById("operationType").value = type;
+
+            const circleButton = document.querySelector('.circle-button');
+            const circleColor = window.getComputedStyle(circleButton).backgroundColor;
+
+            const incomeBtn = document.getElementById("incomeBtn");
+            const expenseBtn = document.getElementById("expenseBtn");
+            const submitBtn = document.getElementById("submitBtn");
+
+            incomeBtn.style.backgroundColor = circleColor;
+            incomeBtn.style.borderColor = circleColor;
+            expenseBtn.style.backgroundColor = circleColor;
+            expenseBtn.style.borderColor = circleColor;
+            submitBtn.style.backgroundColor = circleColor;
+            submitBtn.style.borderColor = circleColor;
+
+            incomeBtn.classList.remove("selected");
+            expenseBtn.classList.remove("selected");
+
+            if (type === "income") {
+                incomeBtn.classList.add("selected");
+            } else if (type === "expense") {
+                expenseBtn.classList.add("selected");
+            }
+        }
+
+        // Инициализация цвета кнопок при загрузке страницы
+        setOperationType('income');
+
+        // Обработчик события для поля ввода суммы
+        const amountInput = document.getElementById('amountInput');
+        amountInput.addEventListener('focus', function() {
+            if (this.value === '') {
+                this.placeholder = '';
+            }
+        });
+        amountInput.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.placeholder = '0';
+            }
+        });
     </script>
 
 </body>
