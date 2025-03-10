@@ -36,7 +36,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var circleColor = "#a19f9f" // Начальный цвет кружочков
+	// Загрузка цвета кружочков из базы данных
+	circleColor, err := LoadSetting(db, "circle_color")
+	if err != nil {
+		log.Fatal("Ошибка загрузки цвета кружочков:", err)
+	}
+	if circleColor == "" {
+		circleColor = "#a19f9f" // Значение по умолчанию
+		log.Println("Используется цвет по умолчанию:", circleColor)
+	} else {
+		log.Println("Загружен цвет из базы данных:", circleColor)
+	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		balance, _ := getCurrentBalance(db)
@@ -58,6 +68,19 @@ func main() {
 		r.ParseForm()
 		color := r.FormValue("color")
 		if color != "" {
+			// Логируем полученный цвет
+			log.Printf("Получен новый цвет: %s", color)
+
+			// Сохраняем новый цвет в базу данных
+			err := SaveSetting(db, "circle_color", color)
+			if err != nil {
+				log.Printf("Ошибка сохранения цвета: %v", err)
+				http.Error(w, "Ошибка сохранения цвета", http.StatusInternalServerError)
+				return
+			}
+			log.Printf("Цвет успешно сохранен в базу данных: %s", color)
+
+			// Обновляем цвет в памяти
 			circleColor = color
 		}
 		http.Redirect(w, r, "/", http.StatusSeeOther)

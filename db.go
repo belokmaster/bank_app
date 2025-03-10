@@ -17,9 +17,10 @@ func OpenDB() (*sql.DB, error) {
 	return database, nil
 }
 
-// Создаёт таблицу в базе данных
+// Создаёт таблицы в базе данных
 func CreateTable(db *sql.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS transactions (
+	// Создание таблицы для финансовых операций
+	queryTransactions := `CREATE TABLE IF NOT EXISTS transactions (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		operation TEXT,
 		type TEXT,
@@ -29,11 +30,39 @@ func CreateTable(db *sql.DB) error {
 		after_operation REAL
 	)`
 
-	_, err := db.Exec(query)
+	_, err := db.Exec(queryTransactions)
 	if err != nil {
-		return fmt.Errorf("ошибка выполнения запроса для создания таблицы: %w", err)
+		return fmt.Errorf("ошибка выполнения запроса для создания таблицы transactions: %w", err)
 	}
+
+	// Создание таблицы для настроек (например, цвет кружочка)
+	querySettings := `CREATE TABLE IF NOT EXISTS settings (
+		key TEXT PRIMARY KEY,   -- Ключ настройки (например, "circle_color")
+		value TEXT NOT NULL     -- Значение настройки (например, "#a19f9f")
+	)`
+
+	_, err = db.Exec(querySettings)
+	if err != nil {
+		return fmt.Errorf("ошибка выполнения запроса для создания таблицы settings: %w", err)
+	}
+
 	return nil
+}
+
+// Сохранить настройку в базу данных
+func SaveSetting(db *sql.DB, key, value string) error {
+	_, err := db.Exec("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", key, value)
+	return err
+}
+
+// Загрузить настройку из базы данных
+func LoadSetting(db *sql.DB, key string) (string, error) {
+	var value string
+	err := db.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
 }
 
 // Обновляет данные в базе данных
