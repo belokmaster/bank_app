@@ -36,9 +36,31 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var circleColor = "#a19f9f" // Начальный цвет кружочков
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		balance, _ := getCurrentBalance(db)
-		tmpl.Execute(w, balance)
+		data := struct {
+			Balance float64
+			Color   string
+		}{
+			Balance: balance,
+			Color:   circleColor,
+		}
+		tmpl.Execute(w, data)
+	})
+
+	http.HandleFunc("/settings", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+			return
+		}
+		r.ParseForm()
+		color := r.FormValue("color")
+		if color != "" {
+			circleColor = color
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
 	http.HandleFunc("/deposit", func(w http.ResponseWriter, r *http.Request) {

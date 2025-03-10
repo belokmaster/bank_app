@@ -8,24 +8,42 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
 
         .balance {
             font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .account-selector {
             margin-bottom: 20px;
+        }
+
+        .account-selector label {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .account-selector select {
+            font-size: 16px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
 
         .circle-button {
             width: 50px;
             height: 50px;
-            background-color: #a19f9f; /* Начальный цвет кружка (серый) */
+            background-color: {{.Color}}; /* Цвет кружочков из шаблона */
             color: white;
             border: none;
             border-radius: 50%;
             font-size: 24px;
             cursor: pointer;
-            margin-bottom: 10px; /* Отступ между кружками */
-            display: block; /* Чтобы кружки были друг под другом */
+            margin-bottom: 10px;
+            display: block;
             margin-left: auto;
             margin-right: auto;
         }
@@ -49,7 +67,7 @@
             background: transparent;
             border-radius: 5px;
             text-align: right;
-            font-size: 40px;
+            font-size: 60px;
             outline: none;
         }
 
@@ -108,10 +126,20 @@
 </head>
 <body>
 
-    <h1 class="balance">Ваш баланс: {{.}} ₽</h1>
+    <h1 class="balance">Ваш баланс: {{.Balance}} ₽</h1>
+
+    <!-- Выбор счета -->
+    <div class="account-selector">
+        <label for="account">Счет:</label>
+        <select id="account" name="account">
+            <option value="account1">Счет 1</option>
+            <option value="account2">Счет 2</option>
+            <option value="account3">Счет 3</option>
+        </select>
+    </div>
 
     <!-- Кружки с разными функциями -->
-    <button class="circle-button" onclick="togglePanel('depositPanel')">+</button>
+    <button class="circle-button" onclick="togglePanel('depositPanel')">±</button>
     <button class="circle-button" onclick="togglePanel('transferPanel')">⇄</button>
     <button class="circle-button" onclick="togglePanel('historyPanel')">📜</button>
     <button class="circle-button" onclick="togglePanel('settingsPanel')">⚙️</button>
@@ -124,9 +152,24 @@
                 <button type="button" id="expenseBtn" onclick="setOperationType('expense')">РАСХОД</button>
             </div>
             <input type="number" name="amount" step="0.01" required id="amountInput" placeholder="0">
+            <style>
+                #amountInput {
+                    font-size: 80px;
+                    text-align: right;
+                    width: 100%;
+                    padding: 8px;
+                    border: none;
+                    background: transparent;
+                    outline: none;
+                }
+
+                #amountInput::placeholder {
+                    font-size: 80px;
+                    color: #999;
+                    text-align: right;
+                }
+            </style>
             <input type="hidden" name="type" id="operationType">
-            <label>Счет:</label>
-            <input type="text" name="account" required>
             <button type="submit" id="submitBtn">ВНЕСТИ</button>
         </form>
     </div>
@@ -135,7 +178,24 @@
     <div class="panel" id="transferPanel">
         <form action="/transfer" method="post">
             <label>Сумма перевода:</label>
-            <input type="number" name="amount" step="0.01" required placeholder="0">
+            <input type="number" name="amount" step="0.01" required id="amountInput" placeholder="0">
+            <style>
+                #amountInput {
+                    font-size: 80px;
+                    text-align: right;
+                    width: 100%;
+                    padding: 8px;
+                    border: none;
+                    background: transparent;
+                    outline: none;
+                }
+
+                #amountInput::placeholder {
+                    font-size: 80px;
+                    color: #999;
+                    text-align: right;
+                }
+            </style>
             <label>Откуда:</label>
             <input type="text" name="fromAccount" required>
             <label>Куда:</label>
@@ -153,7 +213,11 @@
     <!-- Панель настроек -->
     <div class="panel" id="settingsPanel">
         <h2>Настройки</h2>
-        <p>Здесь можно настроить ваш профиль.</p>
+        <form action="/settings" method="post">
+            <label for="color">Выберите цвет кружочков:</label>
+            <input type="color" id="color" name="color" value="{{.Color}}">
+            <button type="submit">Сохранить</button>
+        </form>
     </div>
 
     <script>
@@ -217,6 +281,14 @@
             if (this.value === '') {
                 this.placeholder = '0';
             }
+        });
+
+        // Обновление цвета кружочков при загрузке страницы
+        document.addEventListener("DOMContentLoaded", function() {
+            const circleButtons = document.querySelectorAll('.circle-button');
+            circleButtons.forEach(button => {
+                button.style.backgroundColor = "{{.Color}}";
+            });
         });
     </script>
 
