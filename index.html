@@ -164,10 +164,21 @@
     </div>
 
     <!-- Кружки с разными функциями -->
-    <button class="circle-button" onclick="togglePanel('depositPanel')">±</button>
+    <button class="circle-button" onclick="togglePanel('categoriesPanel')">±</button>
     <button class="circle-button" onclick="togglePanel('transferPanel')">⇄</button>
     <button class="circle-button" onclick="togglePanel('historyPanel')">📜</button>
     <button class="circle-button" onclick="togglePanel('settingsPanel')">⚙️</button>
+
+    <!-- Панель с категориями -->
+    <div class="panel" id="categoriesPanel">
+        <h2>Выберите категорию</h2>
+        <div class="categories">
+            <button class="circle-button category" onclick="selectCategory('Еда')">🍕</button>
+            <button class="circle-button category" onclick="selectCategory('Транспорт')">🚗</button>
+            <button class="circle-button category" onclick="selectCategory('Развлечения')">🎉</button>
+            <button class="circle-button category" onclick="selectCategory('Другое')">❓</button>
+        </div>
+    </div>
 
     <!-- Панель для внесения средств -->
     <div class="panel" id="depositPanel">
@@ -195,6 +206,7 @@
                 }
             </style>
             <input type="hidden" name="type" id="operationType">
+            <input type="hidden" name="category" id="categoryInput">
             <button type="submit" id="submitBtn">ВНЕСТИ</button>
         </form>
     </div>
@@ -267,6 +279,11 @@
     </div>
 
     <script>
+        function selectCategory(category) {
+            document.getElementById('categoryInput').value = category;
+            togglePanel('depositPanel');
+        }
+
         function loadHistory() {
             fetch("/history")
                 .then(response => {

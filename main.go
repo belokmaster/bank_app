@@ -84,12 +84,13 @@ func main() {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
-	http.HandleFunc("/deposit", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/category", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 			return
 		}
 		r.ParseForm()
+		category := r.FormValue("category")
 		amount, err := strconv.ParseFloat(r.FormValue("amount"), 64)
 		if err != nil {
 			http.Error(w, "Некорректная сумма", http.StatusBadRequest)
@@ -113,7 +114,43 @@ func main() {
 			return
 		}
 
-		UpdateDatabase(db, "+", typeOp, countType, amount, before, after)
+		// Сохраняем транзакцию с категорией
+		UpdateDatabaseWithCategory(db, typeOp, countType, amount, before, after, category)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	})
+
+	http.HandleFunc("/deposit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+			return
+		}
+		r.ParseForm()
+		amount, err := strconv.ParseFloat(r.FormValue("amount"), 64)
+		if err != nil {
+			http.Error(w, "Некорректная сумма", http.StatusBadRequest)
+			return
+		}
+
+		typeOp := r.FormValue("type")
+		countType := r.FormValue("account")
+		category := r.FormValue("category") // Получаем категорию из формы
+		before, err := getCurrentBalance(db)
+		if err != nil {
+			http.Error(w, "Ошибка получения баланса", http.StatusInternalServerError)
+			return
+		}
+
+		var after float64
+		if typeOp == "income" {
+			after = before + amount
+		} else if typeOp == "expense" {
+			after = before - amount
+		} else {
+			http.Error(w, "Некорректный тип операции", http.StatusBadRequest)
+			return
+		}
+
+		UpdateDatabase(db, category, typeOp, countType, amount, before, after)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 

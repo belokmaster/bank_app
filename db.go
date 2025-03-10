@@ -71,6 +71,15 @@ func UpdateDatabase(db *sql.DB, operation, typeOp, account string, amount, befor
 	return err
 }
 
+func UpdateDatabaseWithCategory(db *sql.DB, operationType, countType string, amount, before, after float64, category string) error {
+	query := `INSERT INTO transactions (operation_type, count_type, amount, before_operation, after_operation, category) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err := db.Exec(query, operationType, countType, amount, before, after, category)
+	if err != nil {
+		return fmt.Errorf("ошибка при добавлении транзакции: %v", err)
+	}
+	return nil
+}
+
 // Получить историю операций из базы данных
 func GetTransactionHistory(db *sql.DB) ([]map[string]interface{}, error) {
 	rows, err := db.Query(`
