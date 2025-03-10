@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -30,7 +31,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// Создание таблицы
+	// Создание таблиц
 	err = CreateTable(db)
 	if err != nil {
 		log.Fatal(err)
@@ -68,9 +69,6 @@ func main() {
 		r.ParseForm()
 		color := r.FormValue("color")
 		if color != "" {
-			// Логируем полученный цвет
-			log.Printf("Получен новый цвет: %s", color)
-
 			// Сохраняем новый цвет в базу данных
 			err := SaveSetting(db, "circle_color", color)
 			if err != nil {
@@ -117,6 +115,24 @@ func main() {
 
 		UpdateDatabase(db, "+", typeOp, countType, amount, before, after)
 		http.Redirect(w, r, "/", http.StatusSeeOther)
+	})
+
+	http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+		history, err := GetTransactionHistory(db)
+		if err != nil {
+			log.Printf("Ошибка получения истории: %v", err)
+			http.Error(w, "Ошибка получения истории операций", http.StatusInternalServerError)
+			return
+		}
+
+		// Логируем данные перед отправкой
+		log.Printf("Отправляемые данные: %+v", history)
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(history); err != nil {
+			log.Printf("Ошибка кодирования JSON: %v", err)
+			http.Error(w, "Ошибка кодирования JSON", http.StatusInternalServerError)
+		}
 	})
 
 	fmt.Println("Сервер запущен на http://localhost:8080")

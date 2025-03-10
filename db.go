@@ -70,3 +70,38 @@ func UpdateDatabase(db *sql.DB, operation, typeOp, account string, amount, befor
 	_, err := db.Exec(`INSERT INTO transactions (operation, type, account, amount, before_operation, after_operation) VALUES (?, ?, ?, ?, ?, ?)`, operation, typeOp, account, amount, before, after)
 	return err
 }
+
+// Получить историю операций из базы данных
+func GetTransactionHistory(db *sql.DB) ([]map[string]interface{}, error) {
+	rows, err := db.Query(`
+        SELECT type, amount
+        FROM transactions
+        ORDER BY id DESC
+    `)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer rows.Close()
+
+	var history []map[string]interface{}
+	for rows.Next() {
+		var typeOp string
+		var amount float64
+
+		err := rows.Scan(&typeOp, &amount)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка сканирования строки: %w", err)
+		}
+
+		history = append(history, map[string]interface{}{
+			"type":   typeOp,
+			"amount": amount,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при обработке результатов: %w", err)
+	}
+
+	return history, nil
+}
