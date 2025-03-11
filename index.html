@@ -137,6 +137,9 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
         }
 
         th, td {
@@ -152,6 +155,30 @@
 
         tr:hover {
             background-color: #f1f1f1;
+        }
+
+        /* Цвета для типов операций */
+        .income {
+            color: #4CAF50; /* Зеленый для дохода */
+            font-weight: bold;
+        }
+
+        .expense {
+            color: #F44336; /* Красный для расхода */
+            font-weight: bold;
+        }
+
+        /* Иконки для категорий */
+        .category-icon {
+            font-size: 20px;
+            margin-right: 10px;
+            vertical-align: middle; /* Выравниваем иконку по центру текста */
+        }
+
+        /* Выравнивание текста и иконки в одну строку */
+        .category-cell {
+            display: flex;
+            align-items: center; /* Выравниваем по вертикали */
         }
     </style>
 </head>
@@ -260,6 +287,7 @@
         <div id="historyContent">
             <!-- Здесь будет отображаться история операций -->
         </div>
+        <button id="showAllButton" onclick="loadHistory(true)" style="margin-top: 20px; display: none;">Показать все</button>
     </div>
 
     <!-- Панель настроек -->
@@ -327,8 +355,13 @@
                         <tbody>
                             ${data.map(transaction => `
                                 <tr>
-                                    <td>${getOperationType(transaction.type)}</td>
-                                    <td>${transaction.category} </td>
+                                    <td class="${transaction.type === 'income' ? 'income' : 'expense'}">
+                                        ${getOperationType(transaction.type)}
+                                    </td>
+                                    <td class="category-cell">
+                                        <span class="category-icon">${getCategoryIcon(transaction.category)}</span>
+                                        <span>${transaction.category}</span>
+                                    </td>
                                     <td>${transaction.amount} ₽</td>
                                 </tr>
                             `).join("")}
@@ -341,6 +374,22 @@
                     console.error("Ошибка загрузки истории:", error);
                     document.getElementById("historyContent").innerHTML = "<p>Ошибка загрузки истории операций.</p>";
                 });
+        }
+
+        // Функция для получения иконки категории
+        function getCategoryIcon(category) {
+            switch (category) {
+                case "Еда":
+                    return "🍕";
+                case "Транспорт":
+                    return "🚗";
+                case "Развлечения":
+                    return "🎉";
+                case "Покупки":
+                    return "🛒";
+                default:
+                    return "❓";
+            }
         }
 
         // Функция для определения типа операции
