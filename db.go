@@ -83,7 +83,7 @@ func UpdateDatabaseWithCategory(db *sql.DB, operationType, countType string, amo
 // Получить историю операций из базы данных
 func GetTransactionHistory(db *sql.DB) ([]map[string]interface{}, error) {
 	rows, err := db.Query(`
-        SELECT type, amount
+        SELECT type, operation, amount
         FROM transactions
         ORDER BY id DESC
     `)
@@ -95,16 +95,18 @@ func GetTransactionHistory(db *sql.DB) ([]map[string]interface{}, error) {
 	var history []map[string]interface{}
 	for rows.Next() {
 		var typeOp string
+		var category string
 		var amount float64
 
-		err := rows.Scan(&typeOp, &amount)
+		err := rows.Scan(&typeOp, &category, &amount)
 		if err != nil {
 			return nil, fmt.Errorf("ошибка сканирования строки: %w", err)
 		}
 
 		history = append(history, map[string]interface{}{
-			"type":   typeOp,
-			"amount": amount,
+			"type":     typeOp,
+			"category": category,
+			"amount":   amount,
 		})
 	}
 
