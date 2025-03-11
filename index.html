@@ -284,10 +284,34 @@
     <!-- Панель истории операций -->
     <div class="panel" id="historyPanel">
         <h2>История операций</h2>
+        <div class="operation-buttons">
+            <button type="button" id="showIncomeBtn" onclick="filterHistory('income')">ДОХОД</button>
+            <button type="button" id="showExpenseBtn" onclick="filterHistory('expense')">РАСХОД</button>
+        </div>
         <div id="historyContent">
             <!-- Здесь будет отображаться история операций -->
-        </div>
-        <button id="showAllButton" onclick="loadHistory(true)" style="margin-top: 20px; display: none;">Показать все</button>
+        </div>      
+        <button id="showAllButton" onclick="loadHistory(true)" style="margin-top: 20px; display: none;">ПОКАЗАТЬ ВСЕ</button>
+        <style>
+            #showAllButton {
+                background-color: var(--circle-color); /* Используем CSS-переменную */
+                color: white;
+                border: 2px solid transparent;
+                padding: 10px;
+                cursor: pointer;
+                border-radius: 5px;
+                width: 100%;
+                transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+                box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+                font-weight: bold;
+                margin-top: 20px;
+            }
+
+            #showAllButton:active {
+                transform: translateY(2px);
+                box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            }
+        </style>
     </div>
 
     <!-- Панель настроек -->
@@ -320,12 +344,38 @@
     </div>
 
     <script>
+        let currentFilter = null; // Текущий фильтр (null - все, 'income' - доходы, 'expense' - расходы)
+
+        function filterHistory(type) {
+            currentFilter = type;
+            loadHistory();
+
+            const circleColor = "{{.Color}}"; // Получаем цвет из базы данных
+            const incomeBtn = document.getElementById("showIncomeBtn");
+            const expenseBtn = document.getElementById("showExpenseBtn");
+
+            // Убираем выделение с обеих кнопок
+            incomeBtn.classList.remove("selected");
+            expenseBtn.classList.remove("selected");
+
+            // Выделяем активную кнопку
+            if (type === "income") {
+                incomeBtn.classList.add("selected");
+                incomeBtn.style.backgroundColor = circleColor;
+                incomeBtn.style.filter = "brightness(90%)"; // Затемняем кнопку
+            } else if (type === "expense") {
+                expenseBtn.classList.add("selected");
+                expenseBtn.style.backgroundColor = circleColor;
+                expenseBtn.style.filter = "brightness(90%)"; // Затемняем кнопку
+            }
+        }
+
         function selectCategory(category) {
             document.getElementById('categoryInput').value = category;
             togglePanel('depositPanel');
         }
 
-        function loadHistory() {
+        function loadHistory(showAll = false) {
             fetch("/history")
                 .then(response => {
                     if (!response.ok) {
@@ -343,6 +393,9 @@
                         return;
                     }
 
+                    // Фильтрация данных
+                    const filteredData = currentFilter ? data.filter(transaction => transaction.type === currentFilter) : data;
+
                     const table = document.createElement("table");
                     table.innerHTML = `
                         <thead>
@@ -353,7 +406,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.map(transaction => `
+                            ${filteredData.map(transaction => `
                                 <tr>
                                     <td class="${transaction.type === 'income' ? 'income' : 'expense'}">
                                         ${getOperationType(transaction.type)}
@@ -369,12 +422,66 @@
                     `;
 
                     historyContent.appendChild(table);
+
+                    // Показываем кнопку "Показать все", если данные отфильтрованы
+                    if (currentFilter) {
+                        document.getElementById("showAllButton").style.display = "block";
+                    } else {
+                        document.getElementById("showAllButton").style.display = "none";
+                    }
                 })
                 .catch(error => {
                     console.error("Ошибка загрузки истории:", error);
                     document.getElementById("historyContent").innerHTML = "<p>Ошибка загрузки истории операций.</p>";
                 });
         }
+
+        // Функция для сброса фильтра
+        function resetFilter() {
+            currentFilter = null;
+            loadHistory();
+
+            const circleColor = "{{.Color}}"; // Получаем цвет из базы данных
+            const incomeBtn = document.getElementById("showIncomeBtn");
+            const expenseBtn = document.getElementById("showExpenseBtn");
+            const showAllButton = document.getElementById("showAllButton");
+
+            // Сбрасываем выделение и возвращаем цвет
+            incomeBtn.classList.remove("selected");
+            expenseBtn.classList.remove("selected");
+            incomeBtn.style.backgroundColor = circleColor;
+            expenseBtn.style.backgroundColor = circleColor;
+            showAllButton.style.backgroundColor = circleColor;
+            incomeBtn.style.filter = "none";
+            expenseBtn.style.filter = "none";
+        }
+
+        // Функция для обновления цвета кнопок в истории
+        function updateHistoryButtonsColor() {
+            const circleColor = "{{.Color}}"; // Получаем цвет из базы данных
+            const incomeBtn = document.getElementById("showIncomeBtn");
+            const expenseBtn = document.getElementById("showExpenseBtn");
+            const showAllButton = document.getElementById("showAllButton");
+
+            if (incomeBtn && expenseBtn && showAllButton) {
+                incomeBtn.style.backgroundColor = circleColor;
+                incomeBtn.style.borderColor = circleColor;
+                expenseBtn.style.backgroundColor = circleColor;
+                expenseBtn.style.borderColor = circleColor;
+                showAllButton.style.backgroundColor = circleColor;
+                showAllButton.style.borderColor = circleColor;
+            }
+        }
+
+        // Вызываем функцию при загрузке страницы
+        document.addEventListener("DOMContentLoaded", function() {
+            updateHistoryButtonsColor();
+        });
+
+        // Обновляем цвет кнопок при изменении цвета в настройках
+        document.getElementById("color").addEventListener("input", function() {
+            updateHistoryButtonsColor();
+        });
 
         // Функция для получения иконки категории
         function getCategoryIcon(category) {
@@ -406,6 +513,8 @@
 
         // Загружаем историю при открытии панели
         document.getElementById("historyPanel").addEventListener("click", loadHistory);
+                // Обновляем обработчик кнопки "Показать все"
+        document.getElementById("showAllButton").addEventListener("click", resetFilter);
 
         // Обновление цвета кружочков и кнопки "Сохранить" при загрузке страницы
         document.addEventListener("DOMContentLoaded", function() {
