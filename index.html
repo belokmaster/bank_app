@@ -11,6 +11,12 @@
             margin: 0;
             padding: 0;
         }
+        .gray-rectangle {
+            width: 100%;
+            background-color: {{.Color}}; /* Серый фон */
+            padding: 20px 0; /* Отступы сверху и снизу */
+            margin-bottom: 20px; /* Отступ снизу */
+        }
 
         .balance {
             font-size: 24px;
@@ -183,23 +189,25 @@
     </style>
 </head>
 <body>
-
-    <h1 class="balance">Ваш баланс: {{.Balance}} ₽</h1>
-
-    <!-- Выбор счета -->
-    <div class="account-selector">
-        <label for="account">Счет:</label>
-        <select id="account" name="account">
-            <option value="account1">Счет 1</option>
-            <option value="account2">Счет 2</option>
-            <option value="account3">Счет 3</option>
-        </select>
+    <!-- Серый прямоугольник с балансом и выбором счета -->
+    <div class="gray-rectangle">
+        <h1 class="balance">Ваш баланс: {{.Balance}} ₽</h1>
+        <div class="account-selector">
+            <label for="account">Счет:</label>
+            <select id="account" name="account">
+                <option value="account1">Счет 1</option>
+                <option value="account2">Счет 2</option>
+                <option value="account3">Счет 3</option>
+            </select>
+        </div>
     </div>
+
 
     <!-- Кружки с разными функциями -->
     <button class="circle-button" onclick="togglePanel('categoriesPanel')">±</button>
     <button class="circle-button" onclick="togglePanel('transferPanel')">⇄</button>
     <button class="circle-button" onclick="togglePanel('historyPanel')">📜</button>
+    <button class="circle-button" onclick="togglePanel('graphics')">📈</button>
     <button class="circle-button" onclick="togglePanel('settingsPanel')">⚙️</button>
 
     <!-- Панель с категориями -->
@@ -313,6 +321,40 @@
             }
         </style>
     </div>
+
+	<div class="panel" id="graphics">
+		<h2>График</h2>
+		<button id="showGraphButton" onclick="loadGraph()" style="margin-top: 20px;">ПОКАЗАТЬ ГРАФИК</button>
+		<style>
+			#showAllButton,
+			#showGraphButton {
+				background-color: var(--circle-color); /* Используем CSS-переменную */
+				color: white;
+				border: 2px solid transparent;
+				padding: 10px;
+				cursor: pointer;
+				border-radius: 5px;
+				width: 100%;
+				transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+				box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+				font-weight: bold;
+				margin-top: 20px;
+			}
+
+			#showAllButton:active,
+			#showGraphButton:active {
+				transform: translateY(2px);
+				box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+			}
+
+			#historyContent img {
+				max-width: 100%;
+				height: auto;
+				margin-top: 20px;
+			}
+		</style>
+	</div>
+
 
     <!-- Панель настроек -->
     <div class="panel" id="settingsPanel">
@@ -548,6 +590,29 @@
                 panel.style.display = "block";
             }
         }
+
+        function loadGraph() {
+			console.log("Функция loadGraph вызвана!");
+
+			// Убедимся, что #historyContent видим
+			var contentDiv = document.getElementById('graphs');
+			contentDiv.style.display = 'block'; // Показываем элемент, если он скрыт
+
+			// Создаем новый элемент <img>
+			var img = document.createElement('img');
+			img.src = "/graphs?" + new Date().getTime(); // Добавляем timestamp для избежания кеширования
+
+			img.onerror = function() {
+				console.error("Ошибка загрузки графика.");
+			};
+
+			img.onload = function() {
+				console.log("График успешно загружен.");
+			};
+
+			contentDiv.innerHTML = ""; // Очищаем содержимое
+			contentDiv.appendChild(img); // Добавляем изображение
+		}
 
         // Функция для установки типа операции
         function setOperationType(type) {
