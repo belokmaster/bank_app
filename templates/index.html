@@ -6,7 +6,8 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; max-width: 900px; margin: 40px auto; background: #f0f2f5; color: #1c1e21; }
         h1, h2 { text-align: center; color: #333; }
-        .summary-container { display: flex; justify-content: space-around; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .summary-container { display: flex; justify-content: space-around; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; grid-column: 1 / -1; }
         .summary-item { text-align: center; }
         .summary-item h3 { margin: 0; color: #606770; font-weight: normal; }
         .summary-item p { margin: 5px 0 0 0; font-size: 1.6em; font-weight: bold; }
@@ -14,13 +15,16 @@
         .expense { color: #fa383e; }
         .balance { color: #1877f2; }
         .form-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .table-container { margin-top: 30px; }
+        .table-container { margin-top: 30px; grid-column: 1 / -1; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
         th { background: #333; color: #fff; }
         input, select, button { width: 100%; padding: 12px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
         button { background: #333; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 1em; }
+        button:hover { opacity: 0.9; }
         button.delete { background: #fa383e; font-size: 0.9em; padding: 8px 12px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: 1 / -1; }
     </style>
 </head>
 <body>
@@ -41,40 +45,78 @@
         </div>
     </div>
 
-    <div class="form-container">
-        <h2>Добавить новую запись</h2>
-        <form action="/add" method="POST">
-            <select name="type" id="type_select" onchange="updateCategories()">
-                <option value="Расход">Расход</option>
-                <option value="Доход">Доход</option>
-            </select>
-            <select name="category" id="category_select" required>
-            </select>
-            <input type="number" name="amount" placeholder="Сумма" step="0.01" required>
-            <input type="text" name="description" placeholder="Описание (необязательно)">
-            <button type="submit">Сохранить</button>
-        </form>
+    <div class="grid-container">
+        <div class="form-container">
+            <h2>Добавить транзакцию</h2>
+            <form action="/add" method="POST">
+                <div class="form-grid">
+                    <select name="type" id="type_select" onchange="updateTransactionCategories()">
+                        <option value="Расход">Расход</option>
+                        <option value="Доход">Доход</option>
+                    </select>
+                    <select name="category_id" id="category_select" onchange="updateSubcategories()" required>
+                        <option value="">Сначала выберите тип</option>
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <select name="subcategory_id" id="subcategory_select">
+                        <option value="">Нет</option>
+                    </select>
+                    <input type="number" name="amount" placeholder="Сумма" step="0.01" required>
+                </div>
+                <input type="text" name="description" placeholder="Описание (необязательно)" class="full-width">
+                <button type="submit" class="full-width">Сохранить транзакцию</button>
+            </form>
+        </div>
+        
+        <div class="form-container">
+            <h2>Управление категориями</h2>
+            <form action="/add_category" method="POST">
+                <h3>Добавить категорию</h3>
+                <div class="form-grid">
+                    <input type="text" name="name" placeholder="Название категории" required>
+                    <select name="type">
+                        <option value="Расход">Расход</option>
+                        <option value="Доход">Доход</option>
+                    </select>
+                </div>
+                <button type="submit" class="full-width">Сохранить категорию</button>
+            </form>
+            <hr>
+            <form action="/add_subcategory" method="POST">
+                 <h3>Добавить подкатегорию</h3>
+                <div class="form-grid">
+                    <select name="category_id" id="all_category_select" required>
+                        <option value="">Выберите категорию</option>
+                    </select>
+                    <input type="text" name="name" placeholder="Название подкатегории" required>
+                </div>
+                <button type="submit" class="full-width">Сохранить подкатегорию</button>
+            </form>
+        </div>
     </div>
 
     <div class="table-container">
-        <h2>История записей</h2>
+        <h2>История транзакций</h2>
         <table>
             <thead>
                 <tr>
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Категория</th>
+                    <th>Подкатегория</th>
                     <th>Сумма</th>
                     <th>Описание</th>
                     <th>Действие</th>
                 </tr>
             </thead>
             <tbody>
-                {% for id, type, category, amount, description, date in transactions %}
+                {% for id, type, category, subcategory, amount, description, date in transactions %}
                 <tr>
                     <td>{{ date }}</td>
                     <td>{{ type }}</td>
-                    <td>{{ category }}</td>
+                    <td>{{ category or 'N/A' }}</td>
+                    <td>{{ subcategory or 'N/A' }}</td>
                     <td>{{ "%.2f"|format(amount) }}</td>
                     <td>{{ description }}</td>
                     <td>
@@ -89,26 +131,66 @@
     </div>
 
     <script>
-        const incomeCategories = {{ income_categories | tojson }};
-        const expenseCategories = {{ expense_categories | tojson }};
+        const categoriesData = JSON.parse('{{ categories_data_json | safe }}');
         
         const typeSelect = document.getElementById('type_select');
         const categorySelect = document.getElementById('category_select');
+        const subcategorySelect = document.getElementById('subcategory_select');
+        const allCategorySelectForSub = document.getElementById('all_category_select');
 
-        function updateCategories() {
+        function updateTransactionCategories() {
             const selectedType = typeSelect.value;
-            categorySelect.innerHTML = '';
-            const categories = (selectedType === 'Доход') ? incomeCategories : expenseCategories;
+            const categories = categoriesData[selectedType] || [];
+            
+            categorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+            
             categories.forEach(category => {
                 const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
+                option.value = category.id;
+                option.textContent = category.name;
                 categorySelect.appendChild(option);
+            });
+            updateSubcategories();
+        }
+
+        function updateSubcategories() {
+            const selectedType = typeSelect.value;
+            const selectedCategoryId = parseInt(categorySelect.value, 10);
+            
+            subcategorySelect.innerHTML = '<option value="">Нет</option>';
+            
+            if (!selectedCategoryId) return;
+
+            const categories = categoriesData[selectedType] || [];
+            const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+
+            if (selectedCategory && selectedCategory.subcategories) {
+                selectedCategory.subcategories.forEach(subcategory => {
+                    const option = document.createElement('option');
+                    option.value = subcategory.id;
+                    option.textContent = subcategory.name;
+                    subcategorySelect.appendChild(option);
+                });
+            }
+        }
+
+        function populateAllCategoriesSelect() {
+            allCategorySelectForSub.innerHTML = '<option value="">Выберите категорию</option>';
+            const allCategories = [...categoriesData['Доход'], ...categoriesData['Расход']];
+            allCategories.sort((a, b) => a.name.localeCompare(b.name));
+
+            allCategories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = `${category.name} (${category.type})`;
+                allCategorySelectForSub.appendChild(option);
             });
         }
 
-        document.addEventListener('DOMContentLoaded', updateCategories);
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTransactionCategories();
+            populateAllCategoriesSelect();
+        });
     </script>
-
 </body>
 </html>
