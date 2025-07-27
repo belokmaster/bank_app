@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Финансовый Трекер</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; max-width: 900px; margin: 40px auto; background: #f0f2f5; color: #1c1e21; }
+        h1, h2 { text-align: center; color: #333; }
+        .summary-container { display: flex; justify-content: space-around; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .summary-item { text-align: center; }
+        .summary-item h3 { margin: 0; color: #606770; font-weight: normal; }
+        .summary-item p { margin: 5px 0 0 0; font-size: 1.6em; font-weight: bold; }
+        .income { color: #31a24c; }
+        .expense { color: #fa383e; }
+        .balance { color: #1877f2; }
+        .form-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .table-container { margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: left; }
+        th { background: #333; color: #fff; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
+        button { background: #333; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 1em; }
+        button.delete { background: #fa383e; font-size: 0.9em; padding: 8px 12px; }
+    </style>
+</head>
+<body>
+    <h1>Финансовый Трекер</h1>
+
+    <div class="summary-container">
+        <div class="summary-item">
+            <h3>Доходы</h3>
+            <p class="income">{{ "%.2f"|format(totals.income) }}</p>
+        </div>
+        <div class="summary-item">
+            <h3>Расходы</h3>
+            <p class="expense">{{ "%.2f"|format(totals.expense) }}</p>
+        </div>
+        <div class="summary-item">
+            <h3>Баланс</h3>
+            <p class="balance">{{ "%.2f"|format(totals.balance) }}</p>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <h2>Добавить новую запись</h2>
+        <form action="/add" method="POST">
+            <select name="type" id="type_select" onchange="updateCategories()">
+                <option value="Расход">Расход</option>
+                <option value="Доход">Доход</option>
+            </select>
+            <select name="category" id="category_select" required>
+            </select>
+            <input type="number" name="amount" placeholder="Сумма" step="0.01" required>
+            <input type="text" name="description" placeholder="Описание (необязательно)">
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <h2>История записей</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Категория</th>
+                    <th>Сумма</th>
+                    <th>Описание</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for id, type, category, amount, description, date in transactions %}
+                <tr>
+                    <td>{{ date }}</td>
+                    <td>{{ type }}</td>
+                    <td>{{ category }}</td>
+                    <td>{{ "%.2f"|format(amount) }}</td>
+                    <td>{{ description }}</td>
+                    <td>
+                        <form action="/delete/{{ id }}" method="POST" style="margin:0;">
+                            <button class="delete" type="submit">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const incomeCategories = {{ income_categories | tojson }};
+        const expenseCategories = {{ expense_categories | tojson }};
+        
+        const typeSelect = document.getElementById('type_select');
+        const categorySelect = document.getElementById('category_select');
+
+        function updateCategories() {
+            const selectedType = typeSelect.value;
+            categorySelect.innerHTML = '';
+            const categories = (selectedType === 'Доход') ? incomeCategories : expenseCategories;
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', updateCategories);
+    </script>
+
+</body>
+</html>
